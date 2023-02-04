@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"goactor"
 )
 
@@ -27,6 +28,7 @@ func NewCounter(ctx context.Context) CounterActor {
 }
 
 func incrementCounter(_ context.Context, state *CounterActorState, msg CounterMsgIncr) CounterResp {
+	fmt.Printf("incrementing counter by %d\n", msg.by)
 	state.counter += msg.by
 
 	return getCounterState(state)
