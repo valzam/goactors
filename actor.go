@@ -28,6 +28,7 @@ type msg[T any, R any] struct {
 type asyncActor[S any, I any, R any] struct {
 	// Admin
 	ctx        context.Context
+	cancelCtx  context.Context
 	cancelFunc context.CancelFunc
 	stopped    bool
 	running    bool
@@ -45,7 +46,7 @@ type asyncActor[S any, I any, R any] struct {
 func NewActor[S any, I any, R any](ctx context.Context,
 	initialState S,
 	processFunc func(context.Context, *S, I) R) Actor[S, I, R] {
-	cancelCtx, cancel := context.WithCancel(ctx)
+	cancelCtx, cancel := context.WithCancel(context.Background())
 
 	// Default processing function that sends a response to the response channel passed in through Send
 	processFuncImpl := func(state *S, msg msg[I, R]) {
@@ -67,7 +68,8 @@ func NewActor[S any, I any, R any](ctx context.Context,
 	}
 
 	return &asyncActor[S, I, R]{
-		ctx:           cancelCtx,
+		ctx:           ctx,
+		cancelCtx:     cancelCtx,
 		cancelFunc:    cancel,
 		inputChan:     make(chan msg[I, R], inputBuffer),
 		inputChanFF:   make(chan I),
@@ -103,7 +105,7 @@ func (c *asyncActor[S, I, R]) start() {
 			c.processFuncFF(&c.state, i)
 		case i := <-c.inputChan:
 			c.processFunc(&c.state, i)
-		case <-c.ctx.Done():
+		case <-c.cancelCtx.Done():
 			println("shutting down")
 			c.stopped = true
 			c.running = false
