@@ -6,7 +6,8 @@ type baseActor interface {
 	start()
 	prepareStart()
 	stop()
-	IsStopped() bool
+	isStopped() bool
+
 	IsRunning() bool
 }
 
@@ -27,7 +28,7 @@ func (c *baseActorImpl[S, T]) prepareStart() {
 }
 
 func (c *baseActorImpl[S, T]) start() {
-	if c.IsStopped() {
+	if c.isStopped() {
 		panic("cannot restart actor")
 	}
 
@@ -44,7 +45,7 @@ actorLoop:
 }
 
 func (c *baseActorImpl[S, T]) stop() {
-	if !c.IsStopped() {
+	if !c.isStopped() {
 		println("shutting down")
 		c.stopped = true
 		c.running = false
@@ -52,7 +53,7 @@ func (c *baseActorImpl[S, T]) stop() {
 	}
 }
 
-func (c *baseActorImpl[S, T]) IsStopped() bool {
+func (c *baseActorImpl[S, T]) isStopped() bool {
 	return c.stopped
 }
 

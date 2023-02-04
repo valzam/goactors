@@ -19,7 +19,7 @@ func (s *RecoverSupervisor) Register(a baseActor) {
 	a.prepareStart()
 
 	go func() {
-		for !a.IsStopped() {
+		for !a.isStopped() {
 			func() {
 				defer func() {
 					if r := recover(); r != nil {

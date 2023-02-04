@@ -4,7 +4,7 @@ import "context"
 
 type Actor[S any, I any, R any] interface {
 	baseActor
-	Send(msg I, resp chan R)
+	Send(msg I, resp chan R) bool
 }
 
 type msg[T any, R any] struct {
@@ -44,12 +44,14 @@ func NewActor[S any, I any, R any](ctx context.Context,
 	}
 }
 
-func (c *asyncActor[S, I, R]) Send(input I, resp chan R) {
+func (c *asyncActor[S, I, R]) Send(input I, resp chan R) bool {
 	if !c.IsRunning() {
-		panic("cannot send to actor that isn't running")
+		return false
 	}
 
 	go func() {
 		c.inputChan <- msg[I, R]{input, resp}
 	}()
+
+	return true
 }
