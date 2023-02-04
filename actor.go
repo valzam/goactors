@@ -2,7 +2,7 @@ package goactor
 
 import "context"
 
-type AsyncActor[S any, I any, R any] interface {
+type Actor[S any, I any, R any] interface {
 	baseActor
 	Send(msg I, resp chan R)
 }
@@ -13,15 +13,14 @@ type msg[T any, R any] struct {
 }
 
 type asyncActor[S any, I any, R any] struct {
-	actor[S, msg[I, R]]
-	processFunc func(context.Context, *S, I) R
-	returnChan  chan R
+	baseActorImpl[S, msg[I, R]]
+	returnChan chan R
 }
 
-func NewAsyncActor[S any, I any, R any](ctx context.Context,
+func NewActor[S any, I any, R any](ctx context.Context,
 	cancelFunc func(),
 	initialState S,
-	processFunc func(context.Context, *S, I) R) AsyncActor[S, I, R] {
+	processFunc func(context.Context, *S, I) R) Actor[S, I, R] {
 
 	processFuncImpl := func(state *S, msg msg[I, R]) {
 		res := processFunc(ctx, state, msg.input)
@@ -37,14 +36,13 @@ func NewAsyncActor[S any, I any, R any](ctx context.Context,
 	}
 
 	return &asyncActor[S, I, R]{
-		actor: actor[S, msg[I, R]]{
+		baseActorImpl: baseActorImpl[S, msg[I, R]]{
 			ctx:         ctx,
 			stopFunc:    cancelFunc,
 			inputChan:   make(chan msg[I, R]),
 			state:       initialState,
 			processFunc: processFuncImpl,
 		},
-		processFunc: processFunc,
 	}
 }
 

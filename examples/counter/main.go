@@ -17,6 +17,7 @@ func main() {
 	var c = NewCounter(context.Background())
 	s.Register(c)
 
+	// Passing a nil channel means the actor won't try to send a response
 	c.Send(CounterMsgIncr{by: 1}, nil)
 	c.Send(CounterMsgIncr{by: 2}, nil)
 	c.Send(CounterMsgIncr{by: 1}, nil)

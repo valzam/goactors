@@ -5,7 +5,7 @@ import (
 	"goactor"
 )
 
-type CounterActor = goactor.AsyncActor[CounterActorState, CounterMsgIncr, CounterResp]
+type CounterActor = goactor.Actor[CounterActorState, CounterMsgIncr, CounterResp]
 type CounterActorState struct {
 	counter int
 }
@@ -20,7 +20,7 @@ type CounterResp struct {
 
 func NewCounter(ctx context.Context) CounterActor {
 	ctx, cancel := context.WithCancel(ctx)
-	return goactor.NewAsyncActor[CounterActorState, CounterMsgIncr, CounterResp](
+	return goactor.NewActor[CounterActorState, CounterMsgIncr, CounterResp](
 		ctx,
 		cancel,
 		CounterActorState{counter: 0},
