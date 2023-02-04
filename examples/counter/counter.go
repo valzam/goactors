@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
-	"goactor/base"
+	"goactor"
 )
 
-type CounterActor = base.AsyncActor[CounterActorState, CounterMsgIncr, CounterResp]
+type CounterActor = goactor.AsyncActor[CounterActorState, CounterMsgIncr, CounterResp]
 type CounterActorState struct {
 	counter int
 }
@@ -20,20 +20,20 @@ type CounterResp struct {
 
 func NewCounter(ctx context.Context) CounterActor {
 	ctx, cancel := context.WithCancel(ctx)
-	return base.NewBasicAsyncActor[CounterActorState, CounterMsgIncr, CounterResp](
+	return goactor.NewAsyncActor[CounterActorState, CounterMsgIncr, CounterResp](
 		ctx,
 		cancel,
 		CounterActorState{counter: 0},
 		incrementCounter,
-		getCounterState,
 	)
 }
 
-func incrementCounter(_ context.Context, state CounterActorState, msg CounterMsgIncr) CounterActorState {
+func incrementCounter(_ context.Context, state *CounterActorState, msg CounterMsgIncr) CounterResp {
 	state.counter += msg.by
-	return state
+
+	return getCounterState(state)
 }
 
-func getCounterState(ca CounterActorState) CounterResp {
+func getCounterState(ca *CounterActorState) CounterResp {
 	return CounterResp{CurrentValue: ca.counter}
 }

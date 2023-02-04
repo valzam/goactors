@@ -1,4 +1,4 @@
-package base
+package goactor
 
 type Supervisor interface {
 	Register(a Actor)

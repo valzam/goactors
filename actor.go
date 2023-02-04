@@ -1,4 +1,4 @@
-package base
+package goactor
 
 import "context"
 
@@ -8,7 +8,7 @@ type Actor interface {
 	IsStopped() bool
 }
 
-type BasicActor[S any, T any] struct {
+type actor[S any, T any] struct {
 	// Admin
 	ctx      context.Context
 	stopFunc context.CancelFunc
@@ -17,15 +17,15 @@ type BasicActor[S any, T any] struct {
 	// Processing
 	inputChan   chan T
 	state       S
-	processFunc func(ctx context.Context, currentState S, msg T) S
+	processFunc func(state *S, msg T)
 }
 
-func (c *BasicActor[S, T]) start() {
+func (c *actor[S, T]) start() {
 actorLoop:
 	for {
 		select {
 		case i := <-c.inputChan:
-			c.state = c.processFunc(c.ctx, c.state, i)
+			c.processFunc(&c.state, i)
 		case <-c.ctx.Done():
 			println("shutting down")
 			close(c.inputChan)
@@ -34,11 +34,11 @@ actorLoop:
 	}
 }
 
-func (c *BasicActor[S, T]) stop() {
+func (c *actor[S, T]) stop() {
 	c.stopped = true
 	c.stopFunc()
 }
 
-func (c *BasicActor[S, T]) IsStopped() bool {
+func (c *actor[S, T]) IsStopped() bool {
 	return c.stopped
 }
