@@ -18,7 +18,6 @@ type asyncActor[S any, I any, R any] struct {
 }
 
 func NewActor[S any, I any, R any](ctx context.Context,
-	cancelFunc func(),
 	initialState S,
 	processFunc func(context.Context, *S, I) R) Actor[S, I, R] {
 
@@ -38,7 +37,6 @@ func NewActor[S any, I any, R any](ctx context.Context,
 	return &asyncActor[S, I, R]{
 		baseActorImpl: baseActorImpl[S, msg[I, R]]{
 			ctx:         ctx,
-			stopFunc:    cancelFunc,
 			inputChan:   make(chan msg[I, R]),
 			state:       initialState,
 			processFunc: processFuncImpl,

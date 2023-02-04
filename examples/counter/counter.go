@@ -19,10 +19,8 @@ type CounterResp struct {
 }
 
 func NewCounter(ctx context.Context) CounterActor {
-	ctx, cancel := context.WithCancel(ctx)
 	return goactor.NewActor[CounterActorState, CounterMsgIncr, CounterResp](
 		ctx,
-		cancel,
 		CounterActorState{counter: 0},
 		incrementCounter,
 	)

@@ -12,10 +12,9 @@ type baseActor interface {
 
 type baseActorImpl[S any, T any] struct {
 	// Admin
-	ctx      context.Context
-	stopFunc context.CancelFunc
-	stopped  bool
-	running  bool
+	ctx     context.Context
+	stopped bool
+	running bool
 
 	// Processing
 	inputChan   chan T
@@ -38,17 +37,19 @@ actorLoop:
 		case i := <-c.inputChan:
 			c.processFunc(&c.state, i)
 		case <-c.ctx.Done():
-			println("shutting down")
-			close(c.inputChan)
+			c.stop()
 			break actorLoop
 		}
 	}
 }
 
 func (c *baseActorImpl[S, T]) stop() {
-	c.stopped = true
-	c.running = false
-	c.stopFunc()
+	if !c.IsStopped() {
+		println("shutting down")
+		c.stopped = true
+		c.running = false
+		close(c.inputChan)
+	}
 }
 
 func (c *baseActorImpl[S, T]) IsStopped() bool {
