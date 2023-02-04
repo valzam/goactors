@@ -8,14 +8,16 @@ import (
 )
 
 func main() {
-	s, shutdown := goactor.NewRecoverSupervisor()
+	ctx := context.Background()
+
+	s, shutdown := goactor.NewRecoverSupervisor(ctx)
 	defer func() {
 		shutdown()
 		time.Sleep(1 * time.Second)
 	}()
 
-	var c = NewCounter(context.Background())
-	s.Register(c)
+	var c = NewCounter(ctx)
+	s.RegisterActor(c)
 
 	// Passing a nil channel means the actor won't try to send a response
 	c.Send(CounterMsgIncr{by: 1}, nil)

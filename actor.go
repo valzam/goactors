@@ -2,7 +2,6 @@ package goactor
 
 import (
 	"context"
-	"fmt"
 )
 
 const inputBuffer = 256
@@ -99,14 +98,13 @@ func (c *asyncActor[S, I, R]) start() {
 	c.running = true
 
 	for {
-		fmt.Println("running actor loop")
 		select {
 		case i := <-c.inputChanFF:
 			c.processFuncFF(&c.state, i)
 		case i := <-c.inputChan:
 			c.processFunc(&c.state, i)
 		case <-c.cancelCtx.Done():
-			println("shutting down")
+			println("shutting down actor")
 			c.stopped = true
 			c.running = false
 			close(c.inputChan)

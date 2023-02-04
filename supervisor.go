@@ -1,6 +1,7 @@
 package goactor
 
 import (
+	"context"
 	"sync"
 
 	"github.com/google/uuid"
@@ -11,7 +12,8 @@ const defaultSupervisorCapacity = 256
 type ActorID = uuid.UUID
 
 type Supervisor interface {
-	Register(a baseActor) ActorID
+	RegisterActor(a baseActor) ActorID
+	StopActor(id ActorID)
 	shutdown()
 }
 
@@ -20,14 +22,23 @@ type RecoverSupervisor struct {
 	actors map[ActorID]baseActor
 }
 
-func NewRecoverSupervisor() (*RecoverSupervisor, func()) {
+func NewRecoverSupervisor(ctx context.Context) (*RecoverSupervisor, func()) {
 	s := &RecoverSupervisor{
 		actors: make(map[ActorID]baseActor, defaultSupervisorCapacity),
 	}
+
+	go func() {
+		select {
+		case <-ctx.Done():
+			println("shutting down supervisor")
+			s.shutdown()
+		}
+	}()
+
 	return s, func() { s.shutdown() }
 }
 
-func (s *RecoverSupervisor) Register(a baseActor) {
+func (s *RecoverSupervisor) RegisterActor(a baseActor) {
 	s.mu.Lock()
 
 	actorUUID := uuid.New()

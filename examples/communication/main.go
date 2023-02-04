@@ -7,18 +7,19 @@ import (
 )
 
 func main() {
-	s, shutdown := goactor.NewRecoverSupervisor()
+	ctx := context.Background()
+
+	s, shutdown := goactor.NewRecoverSupervisor(ctx)
 	defer func() {
 		shutdown()
 		time.Sleep(1 * time.Second)
 	}()
 
-	ctx := context.Background()
 	gen := NewGenerator(ctx)
-	s.Register(gen)
+	s.RegisterActor(gen)
 
 	printer := NewPrinter(ctx)
-	s.Register(printer)
+	s.RegisterActor(printer)
 
 	gen.Send(GeneratorMsg{}, printer.Ref())
 	gen.Send(GeneratorMsg{}, printer.Ref())
