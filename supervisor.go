@@ -17,6 +17,7 @@ type Supervisor interface {
 }
 
 type RecoverSupervisor struct {
+	ctx              context.Context
 	mu               sync.Mutex
 	actors           map[ActorID]genericActor
 	stopActorReqChan chan ActorID
@@ -26,17 +27,18 @@ func NewRecoverSupervisor(ctx context.Context) (*RecoverSupervisor, func()) {
 	s := &RecoverSupervisor{
 		actors: make(map[ActorID]genericActor, defaultSupervisorCapacity),
 	}
+	cancelCtx, cancel := context.WithCancel(ctx)
 
 	go func() {
 		select {
 		case id := <-s.stopActorReqChan:
 			s.stopActor(id)
-		case <-ctx.Done():
+		case <-cancelCtx.Done():
 			s.shutdown()
 		}
 	}()
 
-	return s, s.shutdown
+	return s, cancel
 }
 
 func (s *RecoverSupervisor) RegisterActor(a genericActor) {
