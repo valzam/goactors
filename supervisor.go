@@ -9,22 +9,20 @@ import (
 
 const defaultSupervisorCapacity = 256
 
-type ActorID = uuid.UUID
-
 type Supervisor interface {
-	RegisterActor(a baseActor) ActorID
+	RegisterActor(a genericActor) ActorID
 	StopActor(id ActorID)
 	shutdown()
 }
 
 type RecoverSupervisor struct {
 	mu     sync.Mutex
-	actors map[ActorID]baseActor
+	actors map[ActorID]genericActor
 }
 
 func NewRecoverSupervisor(ctx context.Context) (*RecoverSupervisor, func()) {
 	s := &RecoverSupervisor{
-		actors: make(map[ActorID]baseActor, defaultSupervisorCapacity),
+		actors: make(map[ActorID]genericActor, defaultSupervisorCapacity),
 	}
 
 	go func() {
@@ -38,7 +36,7 @@ func NewRecoverSupervisor(ctx context.Context) (*RecoverSupervisor, func()) {
 	return s, func() { s.shutdown() }
 }
 
-func (s *RecoverSupervisor) RegisterActor(a baseActor) {
+func (s *RecoverSupervisor) RegisterActor(a genericActor) {
 	s.mu.Lock()
 
 	actorUUID := uuid.New()

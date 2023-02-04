@@ -7,16 +7,9 @@ import (
 const inputBuffer = 256
 
 type Actor[S any, I any, R any] interface {
-	baseActor
+	genericActor
 	Send(msg I, resp chan R) bool
 	Ref() chan I
-}
-
-type baseActor interface {
-	start()
-	stop()
-	wasStopped() bool
-	isRunning() bool
 }
 
 type msg[T any, R any] struct {
