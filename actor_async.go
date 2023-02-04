@@ -3,9 +3,8 @@ package goactor
 import "context"
 
 type AsyncActor[S any, I any, R any] interface {
-	Actor
+	baseActor
 	Send(msg I, resp chan R)
-	GetState() S
 }
 
 type msg[T any, R any] struct {
@@ -33,7 +32,6 @@ func NewAsyncActor[S any, I any, R any](ctx context.Context,
 			// We shouldn't send to a nil channel because it will block forever
 			if msg.returnChan != nil {
 				msg.returnChan <- res
-				close(msg.returnChan)
 			}
 		}()
 	}
@@ -51,11 +49,11 @@ func NewAsyncActor[S any, I any, R any](ctx context.Context,
 }
 
 func (c *asyncActor[S, I, R]) Send(input I, resp chan R) {
+	if !c.IsRunning() {
+		panic("cannot send to actor that isn't running")
+	}
+
 	go func() {
 		c.inputChan <- msg[I, R]{input, resp}
 	}()
-}
-
-func (c *asyncActor[S, I, R]) GetState() S {
-	return c.state
 }

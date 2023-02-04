@@ -2,10 +2,12 @@ package goactor
 
 import "context"
 
-type Actor interface {
+type baseActor interface {
 	start()
+	prepareStart()
 	stop()
 	IsStopped() bool
+	IsRunning() bool
 }
 
 type actor[S any, T any] struct {
@@ -13,6 +15,7 @@ type actor[S any, T any] struct {
 	ctx      context.Context
 	stopFunc context.CancelFunc
 	stopped  bool
+	running  bool
 
 	// Processing
 	inputChan   chan T
@@ -20,7 +23,15 @@ type actor[S any, T any] struct {
 	processFunc func(state *S, msg T)
 }
 
+func (c *actor[S, T]) prepareStart() {
+	c.running = true
+}
+
 func (c *actor[S, T]) start() {
+	if c.IsStopped() {
+		panic("cannot restart actor")
+	}
+
 actorLoop:
 	for {
 		select {
@@ -36,9 +47,14 @@ actorLoop:
 
 func (c *actor[S, T]) stop() {
 	c.stopped = true
+	c.running = false
 	c.stopFunc()
 }
 
 func (c *actor[S, T]) IsStopped() bool {
 	return c.stopped
+}
+
+func (c *actor[S, T]) IsRunning() bool {
+	return c.running
 }

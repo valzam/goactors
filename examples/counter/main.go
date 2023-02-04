@@ -22,5 +22,11 @@ func main() {
 	c.Send(CounterMsgIncr{by: 1}, nil)
 
 	time.Sleep(1 * time.Second)
-	println(fmt.Sprintf("counter actor state: %v", c.GetState()))
+
+	resChan := make(chan CounterResp)
+	c.Send(CounterMsgIncr{}, resChan)
+	res := <-resChan
+	close(resChan)
+
+	fmt.Printf("counter actor state: %v\n", res)
 }

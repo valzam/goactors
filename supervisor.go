@@ -1,12 +1,12 @@
 package goactor
 
 type Supervisor interface {
-	Register(a Actor)
+	Register(a baseActor)
 	shutdown()
 }
 
 type RecoverSupervisor struct {
-	actors []Actor
+	actors []baseActor
 }
 
 func NewRecoverSupervisor() (*RecoverSupervisor, func()) {
@@ -14,8 +14,10 @@ func NewRecoverSupervisor() (*RecoverSupervisor, func()) {
 	return s, func() { s.shutdown() }
 }
 
-func (s *RecoverSupervisor) Register(a Actor) {
+func (s *RecoverSupervisor) Register(a baseActor) {
 	s.actors = append(s.actors, a)
+	a.prepareStart()
+
 	go func() {
 		for !a.IsStopped() {
 			func() {
