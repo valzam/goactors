@@ -3,6 +3,7 @@ package goactor
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -16,8 +17,9 @@ type Supervisor interface {
 }
 
 type RecoverSupervisor struct {
-	mu     sync.Mutex
-	actors map[ActorID]genericActor
+	mu               sync.Mutex
+	actors           map[ActorID]genericActor
+	stopActorReqChan chan ActorID
 }
 
 func NewRecoverSupervisor(ctx context.Context) (*RecoverSupervisor, func()) {
@@ -27,13 +29,14 @@ func NewRecoverSupervisor(ctx context.Context) (*RecoverSupervisor, func()) {
 
 	go func() {
 		select {
+		case id := <-s.stopActorReqChan:
+			s.stopActor(id)
 		case <-ctx.Done():
-			println("shutting down supervisor")
 			s.shutdown()
 		}
 	}()
 
-	return s, func() { s.shutdown() }
+	return s, s.shutdown
 }
 
 func (s *RecoverSupervisor) RegisterActor(a genericActor) {
@@ -65,6 +68,17 @@ func (s *RecoverSupervisor) RegisterActor(a genericActor) {
 }
 
 func (s *RecoverSupervisor) StopActor(id ActorID) {
+	s.stopActorReqChan <- id
+}
+
+func (s *RecoverSupervisor) StopActorAfter(id ActorID, delay time.Duration) {
+	go func() {
+		time.Sleep(delay)
+		s.stopActorReqChan <- id
+	}()
+}
+
+func (s *RecoverSupervisor) stopActor(id ActorID) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -78,6 +92,7 @@ func (s *RecoverSupervisor) StopActor(id ActorID) {
 }
 
 func (s *RecoverSupervisor) shutdown() {
+	println("shutting down supervisor")
 	for _, a := range s.actors {
 		a.stop()
 	}
