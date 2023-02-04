@@ -15,11 +15,9 @@ type Actor[S any, I any, R any] interface {
 
 type baseActor interface {
 	start()
-	prepareStart()
 	stop()
-	isStopped() bool
-
-	IsRunning() bool
+	wasStopped() bool
+	isRunning() bool
 }
 
 type msg[T any, R any] struct {
@@ -80,9 +78,8 @@ func NewActor[S any, I any, R any](ctx context.Context,
 }
 
 func (c *asyncActor[S, I, R]) Send(input I, resp chan R) bool {
-	if !c.IsRunning() {
-		return false
-	}
+	// TODO Should this error if the actor hasn't been started yet?
+	// Problem: Would need a lock on the `running` variable for every send
 
 	c.inputChan <- msg[I, R]{input, resp}
 	return true
@@ -92,14 +89,12 @@ func (c *asyncActor[S, I, R]) Ref() chan I {
 	return c.inputChanFF
 }
 
-func (c *asyncActor[S, I, R]) prepareStart() {
-	c.running = true
-}
-
 func (c *asyncActor[S, I, R]) start() {
-	if c.isStopped() {
+	if c.wasStopped() {
 		panic("cannot start actor that was manually stopped before")
 	}
+
+	c.running = true
 
 	for {
 		fmt.Println("running actor loop")
@@ -119,15 +114,13 @@ func (c *asyncActor[S, I, R]) start() {
 }
 
 func (c *asyncActor[S, I, R]) stop() {
-	if !c.isStopped() {
-		c.cancelFunc()
-	}
+	c.cancelFunc()
 }
 
-func (c *asyncActor[S, I, R]) isStopped() bool {
+func (c *asyncActor[S, I, R]) wasStopped() bool {
 	return c.stopped
 }
 
-func (c *asyncActor[S, I, R]) IsRunning() bool {
+func (c *asyncActor[S, I, R]) isRunning() bool {
 	return c.running
 }

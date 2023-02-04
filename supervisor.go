@@ -1,5 +1,9 @@
 package goactor
 
+import (
+	"sync"
+)
+
 type Supervisor interface {
 	Register(a baseActor)
 	shutdown()
@@ -16,20 +20,25 @@ func NewRecoverSupervisor() (*RecoverSupervisor, func()) {
 
 func (s *RecoverSupervisor) Register(a baseActor) {
 	s.actors = append(s.actors, a)
-	a.prepareStart()
 
+	wg := sync.WaitGroup{}
 	go func() {
-		for !a.isStopped() {
+		for !a.wasStopped() {
+			wg.Add(1)
 			func() {
 				defer func() {
 					if r := recover(); r != nil {
 						println("restarting actor")
 					}
 				}()
+				wg.Done()
 				a.start()
 			}()
 		}
 	}()
+
+	// Wait for the goroutine to call `start` once
+	wg.Wait()
 }
 
 func (s *RecoverSupervisor) shutdown() {
