@@ -4,8 +4,6 @@ import (
 	"context"
 )
 
-const inputBuffer = 256
-
 type Actor[S any, I any, R any] interface {
 	genericActor
 	Send(msg I, resp chan R) bool
@@ -19,11 +17,11 @@ type msg[T any, R any] struct {
 
 type asyncActor[S any, I any, R any] struct {
 	// Admin
-	ctx        context.Context
-	cancelCtx  context.Context
-	cancelFunc context.CancelFunc
-	stopped    bool
-	running    bool
+	ctx          context.Context
+	cancelCtx    context.Context
+	cancelFunc   context.CancelFunc
+	runningChan  chan struct{}
+	shutdownChan chan struct{}
 
 	// Processing
 	state S
@@ -37,7 +35,8 @@ type asyncActor[S any, I any, R any] struct {
 
 func NewActor[S any, I any, R any](ctx context.Context,
 	initialState S,
-	processFunc func(context.Context, *S, I) R) Actor[S, I, R] {
+	processFunc func(context.Context, *S, I) R,
+) Actor[S, I, R] {
 	cancelCtx, cancel := context.WithCancel(context.Background())
 
 	// Default processing function that sends a response to the response channel passed in through Send
@@ -63,11 +62,13 @@ func NewActor[S any, I any, R any](ctx context.Context,
 		ctx:           ctx,
 		cancelCtx:     cancelCtx,
 		cancelFunc:    cancel,
-		inputChan:     make(chan msg[I, R], inputBuffer),
+		inputChan:     make(chan msg[I, R]),
 		inputChanFF:   make(chan I),
 		state:         initialState,
 		processFunc:   processFuncImpl,
 		processFuncFF: processFuncFFImpl,
+		runningChan:   make(chan struct{}),
+		shutdownChan:  make(chan struct{}),
 	}
 }
 
@@ -84,11 +85,7 @@ func (c *asyncActor[S, I, R]) Ref() chan I {
 }
 
 func (c *asyncActor[S, I, R]) start() {
-	if c.wasStopped() {
-		panic("cannot start actor that was manually stopped before")
-	}
-
-	c.running = true
+	close(c.runningChan)
 
 	for {
 		select {
@@ -98,9 +95,8 @@ func (c *asyncActor[S, I, R]) start() {
 			c.processFunc(&c.state, i)
 		case <-c.cancelCtx.Done():
 			println("shutting down actor")
-			c.stopped = true
-			c.running = false
 			close(c.inputChan)
+			close(c.shutdownChan)
 			return
 		}
 	}
@@ -110,10 +106,10 @@ func (c *asyncActor[S, I, R]) stop() {
 	c.cancelFunc()
 }
 
-func (c *asyncActor[S, I, R]) wasStopped() bool {
-	return c.stopped
+func (c *asyncActor[S, I, R]) running() <-chan struct{} {
+	return c.runningChan
 }
 
-func (c *asyncActor[S, I, R]) isRunning() bool {
-	return c.running
+func (c *asyncActor[S, I, R]) shutdown() <-chan struct{} {
+	return c.shutdownChan
 }

@@ -11,11 +11,12 @@ type TickerActor[S any] interface {
 
 type tickerActor[S any] struct {
 	// Admin
-	ctx        context.Context
-	cancelCtx  context.Context
-	cancelFunc context.CancelFunc
-	stopped    bool
-	running    bool
+	ctx          context.Context
+	cancelCtx    context.Context
+	cancelFunc   context.CancelFunc
+	stopped      bool
+	runningChan  chan struct{}
+	shutdownChan chan struct{}
 
 	// Processing
 	state       S
@@ -26,26 +27,25 @@ type tickerActor[S any] struct {
 func NewTickerActor[S any](ctx context.Context,
 	initialState S,
 	processFunc func(context.Context, *S),
-	invokeEvery time.Duration) TickerActor[S] {
+	invokeEvery time.Duration,
+) TickerActor[S] {
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	ticker := time.NewTicker(invokeEvery)
 
 	return &tickerActor[S]{
-		ctx:         ctx,
-		cancelCtx:   cancelCtx,
-		cancelFunc:  cancel,
-		state:       initialState,
-		processFunc: processFunc,
-		ticker:      ticker,
+		ctx:          ctx,
+		cancelCtx:    cancelCtx,
+		cancelFunc:   cancel,
+		state:        initialState,
+		processFunc:  processFunc,
+		ticker:       ticker,
+		runningChan:  make(chan struct{}),
+		shutdownChan: make(chan struct{}),
 	}
 }
 
 func (c *tickerActor[S]) start() {
-	if c.wasStopped() {
-		panic("cannot start actor that was manually stopped before")
-	}
-
-	c.running = true
+	close(c.runningChan)
 
 	for {
 		select {
@@ -53,8 +53,6 @@ func (c *tickerActor[S]) start() {
 			c.processFunc(c.ctx, &c.state)
 		case <-c.cancelCtx.Done():
 			println("shutting down actor")
-			c.stopped = true
-			c.running = false
 			return
 		}
 	}
@@ -64,10 +62,10 @@ func (c *tickerActor[S]) stop() {
 	c.cancelFunc()
 }
 
-func (c *tickerActor[S]) wasStopped() bool {
-	return c.stopped
+func (c *tickerActor[S]) running() <-chan struct{} {
+	return c.runningChan
 }
 
-func (c *tickerActor[S]) isRunning() bool {
-	return c.running
+func (c *tickerActor[S]) shutdown() <-chan struct{} {
+	return c.shutdownChan
 }

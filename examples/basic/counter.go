@@ -6,10 +6,12 @@ import (
 	"goactor"
 )
 
-type CounterActor = goactor.Actor[CounterActorState, CounterMsgIncr, CounterResp]
-type CounterActorState struct {
-	counter int
-}
+type (
+	CounterActor      = goactor.Actor[CounterActorState, CounterMsgIncr, CounterResp]
+	CounterActorState struct {
+		counter int
+	}
+)
 
 type CounterMsgIncr struct {
 	by int
@@ -20,7 +22,7 @@ type CounterResp struct {
 }
 
 func NewCounter(ctx context.Context) CounterActor {
-	return goactor.NewActor[CounterActorState, CounterMsgIncr, CounterResp](
+	return goactor.NewActor(
 		ctx,
 		CounterActorState{counter: 0},
 		incrementCounter,

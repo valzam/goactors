@@ -49,24 +49,25 @@ func (s *RecoverSupervisor) RegisterActor(a genericActor) {
 
 	s.mu.Unlock()
 
-	wg := sync.WaitGroup{}
 	go func() {
-		for !a.wasStopped() {
-			wg.Add(1)
-			func() {
+		for {
+			select {
+			case <-a.shutdown():
+				return
+			default:
 				defer func() {
 					if r := recover(); r != nil {
 						println("restarting actor")
+						time.Sleep(50 * time.Millisecond)
 					}
 				}()
-				wg.Done()
 				a.start()
-			}()
+			}
 		}
 	}()
 
-	// Wait for the goroutine to call `start` once
-	wg.Wait()
+	// Wait for the actor to indicate that it is running
+	<-a.running()
 }
 
 func (s *RecoverSupervisor) StopActor(id ActorID) {
