@@ -33,10 +33,7 @@ type asyncActor[S any, I any, R any] struct {
 	processFuncFF func(state *S, msg I)
 }
 
-func NewActor[S any, I any, R any](ctx context.Context,
-	initialState S,
-	processFunc func(context.Context, *S, I) R,
-) Actor[S, I, R] {
+func NewActor[S any, I any, R any](ctx context.Context, initialState S, processFunc func(context.Context, *S, I) R) Actor[S, I, R] {
 	cancelCtx, cancel := context.WithCancel(context.Background())
 
 	// Default processing function that sends a response to the response channel passed in through Send

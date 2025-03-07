@@ -6,8 +6,10 @@ import (
 	"math/rand"
 )
 
-type GeneratorActor = goactor.Actor[GeneratorActorState, GeneratorMsg, GeneratorResp]
-type GeneratorActorState struct{}
+type (
+	GeneratorActor      = goactor.Actor[GeneratorActorState, GeneratorMsg, GeneratorResp]
+	GeneratorActorState struct{}
+)
 
 type GeneratorMsg struct{}
 
@@ -16,7 +18,7 @@ type GeneratorResp struct {
 }
 
 func NewGenerator(ctx context.Context) GeneratorActor {
-	return goactor.NewActor[GeneratorActorState, GeneratorMsg, GeneratorResp](
+	return goactor.NewActor(
 		ctx,
 		GeneratorActorState{},
 		generateValue,
